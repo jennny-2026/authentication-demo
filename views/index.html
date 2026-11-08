@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <title>Authentication Demo</title>
+  </head>
+  <body>
+    <main class="container py-5">
+      <!-- username and password -->
+      <h3 class="mb-4">Username and password login</h3>
+
+      <form id="login-form" class="mb-3">
+        <div class="mb-3">
+          <label for="username" class="form-label">Username</label>
+          <input type="text" class="form-control w-25" id="username" name="username" autocomplete="username" required>
+        </div>
+        <div class="mb-3">
+          <label for="password" class="form-label">Password</label>
+          <input type="password" class="form-control w-25" id="password" name="password" autocomplete="current-password" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Login</button>
+      </form>
+
+      <p id="login-message" class="mt-3" role="status" aria-live="polite"></p>
+
+      <hr class="hr" />
+      <!-- JWT -->
+      <h3 class="mb-4">JWT login</h3>
+
+      <form id="login-form-jwt" class="mb-3">
+        <div class="mb-3">
+          <label for="username" class="form-label">Username</label>
+          <input type="text" class="form-control w-25" id="username-jwt" name="username" autocomplete="username" required>
+        </div>
+        <div class="mb-3">
+          <label for="password" class="form-label">Password</label>
+          <input type="password" class="form-control w-25" id="password-jwt" name="password" autocomplete="current-password" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Login</button>
+      </form>
+
+      <p id="login-message-jwt" class="mt-3" role="status" aria-live="polite"></p>
+
+      <!-- oidc -->
+      <h3 class="mb-4">oidc login</h3>
+
+      <form id="login-form-oidc" class="mb-3" action="/api-oidc-client/login" method="get">
+        <button type="submit" class="btn btn-primary">Login</button>
+      </form>
+
+      <p id="login-message-oidc" class="mt-3" role="status" aria-live="polite"></p>
+
+      <!-- passport -->
+      <h3 class="mb-4">passport login</h3>
+
+      <form id="login-form-google" class="mb-3" action="/api-oath2/google" method="get">
+        <button type="submit" class="btn btn-primary">Login</button>
+      </form>
+
+      <p id="login-message-passport" class="mt-3" role="status" aria-live="polite"></p>
+
+    </main>
+
+    <!-- username and password-->
+    <script>
+      const loginForm = document.querySelector('#login-form');
+      const loginMessage = document.querySelector('#login-message');
+
+      function showLoggedIn(username) {
+        loginForm.hidden = true;
+        loginMessage.textContent = 'You are logged in as ' + username + '.';
+      }
+
+      loginForm.addEventListener('submit', async (event) => {
+        console.log('hello');
+        event.preventDefault();
+        loginMessage.textContent = '';
+
+        const formData = new FormData(loginForm);
+        const response = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: formData.get('username'),
+            password: formData.get('password')
+          })
+        });
+        const result = await response.json();
+
+        if (response.ok) {
+          showLoggedIn(result.username);
+        } else {
+          loginMessage.textContent = result.message || 'Login failed.';
+        }
+      });
+    </script>
+
+    <!-- jwt --> 
+    <script>
+      const loginFormJWT = document.querySelector('#login-form-jwt');
+      const loginMessageJWT = document.querySelector('#login-message-jwt');
+
+      function showLoggedInJWT(username) {
+        loginFormJWT.hidden = true;
+        loginMessageJWT.textContent = 'Decoded from the jwt token that you are ' + username + '.';
+      }
+
+      loginFormJWT.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        loginMessageJWT.textContent = '';
+
+        const formData = new FormData(loginFormJWT);
+        const response = await fetch('/api-jwt/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: formData.get('username'),
+            password: formData.get('password')
+          })
+        });
+
+        const me = await fetch('/api-jwt/test/me');
+        const me_data = await me.json();
+
+        console.log(me_data);
+
+        if (me.ok) {
+          showLoggedInJWT(me_data.user);
+        } else {
+          loginMessageJWT.textContent = 'Login failed.';
+        }
+      });
+    </script>
+
+    <!-- oidc --> 
+    <script>
+      const loginFormOIDC = document.querySelector('#login-form-oidc');
+      const loginMessageOIDC = document.querySelector('#login-message-oidc');
+
+      function showLoggedInOIDC(username) {
+        loginFormOIDC.hidden = true;
+        loginMessageOIDC.textContent = 'OIDC ID token: ' + username;
+      }
+
+      const idToken = new URLSearchParams(window.location.search).get('id_token');
+      if (idToken) {
+        showLoggedInOIDC(idToken);
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+    </script>
+
+    <!-- passport -->
+    <script>
+      const loginFormPassport = document.querySelector('#login-form-google');
+      const loginMessagePassport = document.querySelector('#login-message-passport');
+      const passportUser = new URLSearchParams(window.location.search).get('user');
+
+      if (passportUser) {
+        loginFormPassport.hidden = true;
+        loginMessagePassport.textContent = 'You are logged in as ' + passportUser + '.';
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js" integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.min.js" integrity="sha384-G/EV+4j2dNv+tEPo3++6LCgdCROaejBqfUeNjuKAiuXbjrxilcCdDz6ZAVfHWe1Y" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+  </body>
+</html>
